@@ -21,6 +21,12 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter:5.14.3")
     testImplementation("org.assertj:assertj-core:3.27.7")
     testImplementation("org.wiremock:wiremock-standalone:3.13.2")
+
+    // Gradle 9 no longer auto-provides the JUnit Platform launcher on the
+    // test runtime classpath, so we declare it explicitly. Without this,
+    // `gradle test` fails with "Failed to load JUnit Platform" the moment
+    // any test exists. Version 1.14.3 aligns with JUnit Jupiter 5.14.3.
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.14.3")
 }
 
 tasks.test {
