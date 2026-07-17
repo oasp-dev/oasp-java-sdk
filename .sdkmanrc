@@ -1,0 +1,8 @@
+# SDKMAN environment pin (https://sdkman.io).
+# We deliberately do not ship a Gradle wrapper, so this file (plus the CI
+# workflow) is how the Gradle version stays consistent across machines.
+#
+# One-time:  sdk env install    (installs the versions below)
+# Per shell: sdk env            (switches this directory to them)
+#            or enable auto-switching: `sdk config` -> sdkman_auto_env=true
+gradle=9.6.1
