@@ -31,10 +31,13 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform {
-        // Tests tagged @Tag("loom") exercise virtual-thread / structured
-        // concurrency behaviour and can be slow or environment-sensitive.
-        // They're excluded from the default run; a developer who needs to
-        // run them locally can comment out this line temporarily.
+        // "loom" tags tests that need a running OASP server (the reference
+        // server is called Loom - see issue #11). NOTE: this is the Loom
+        // *server*, NOT Java's Project Loom / virtual threads.
+        //
+        // They're excluded from the default build so it stays green without
+        // external infrastructure. Issue #11 will add a dedicated way to run
+        // them (a separate CI job / task) against a real Loom.
         excludeTags("loom")
     }
 }
