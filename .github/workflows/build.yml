@@ -19,7 +19,17 @@ jobs:
           distribution: temurin
           java-version: "21"
 
-      # `./gradlew build` compiles both modules, runs all tests, and runs
+      # We do NOT commit a Gradle wrapper (no binaries in the repo), so CI
+      # provisions Gradle itself. This official action downloads the pinned
+      # Gradle version onto the runner, caches it between builds, and puts
+      # `gradle` on the PATH. The version here is the single source of truth
+      # for CI; local dev pins the same version via .sdkmanrc (see README).
+      - name: Set up Gradle 9.6.1
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "9.6.1"
+
+      # `gradle build` compiles both modules, runs all tests, and runs
       # `check` - which includes oasp-client's `verifyZeroRuntimeDependencies`
       # task (see oasp-client/build.gradle.kts). That task fails the build
       # if oasp-client has picked up any external runtime dependency, so
@@ -27,4 +37,4 @@ jobs:
       # in CI. There is no separate step for it because it isn't optional -
       # a "build" that skipped it wouldn't be trustworthy.
       - name: Build (compiles, tests, and enforces the zero-dependency rule)
-        run: ./gradlew build
+        run: gradle build
