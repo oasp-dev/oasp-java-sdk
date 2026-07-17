@@ -1,0 +1,30 @@
+# Continuous integration: builds the whole project the same way a
+# developer would locally, on every push and every pull request.
+name: Build
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      # `./gradlew build` compiles both modules, runs all tests, and runs
+      # `check` - which includes oasp-client's `verifyZeroRuntimeDependencies`
+      # task (see oasp-client/build.gradle.kts). That task fails the build
+      # if oasp-client has picked up any external runtime dependency, so
+      # this single step is also what gates the "zero dependencies" rule
+      # in CI. There is no separate step for it because it isn't optional -
+      # a "build" that skipped it wouldn't be trustworthy.
+      - name: Build (compiles, tests, and enforces the zero-dependency rule)
+        run: ./gradlew build
