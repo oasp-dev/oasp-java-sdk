@@ -1,0 +1,127 @@
+# yaml-language-server: $schema=https://schema.workspec.io/v1alpha1/decision.schema.json
+apiVersion: workspec.io/v1alpha1
+kind: Decision
+metadata:
+  id: dec-d1-json-serialisation
+  title: 'D1 — JSON serialisation for oasp-client'
+  status: decided
+  created: '2026-07-18'
+  deciders:
+    - 'Fieldstate Dev Lead'
+spec:
+  context: >-
+    oasp-client must read and write the OASP protocol types over HTTP. The hard
+    constraint (spec §2) is ZERO external runtime dependencies, and the JDK ships
+    no JSON parser — so "use a library" and "add no dependency" are in tension.
+    The type surface is small and closed (the records in dev.oasp.client.types
+    plus the AuditEvent hierarchy). Costs below are the ongoing monthly carrying
+    effort of each choice — parser/mapping upkeep, or library upgrades and
+    CVE-watch — in loaded engineer-days; one-off implementation was a few days
+    for the hand-rolled option and near-zero for the libraries.
+  catalog: ./decisions.catalog.yaml
+  currency: NZD
+  environments:
+    - ongoing
+  criteria:
+    - id: zeroDep
+      label: 'Zero runtime deps'
+      hint: 'Keeps oasp-client free of external runtime deps; never forces a version on consumers (higher = better)'
+      weight: 2.0
+    - id: lowMaintenance
+      label: 'Low maintenance'
+      hint: 'Little ongoing code or upgrade burden to carry (higher = less burden)'
+      weight: 1.5
+    - id: robustness
+      label: 'Robustness'
+      hint: 'Battle-tested correctness and security (higher = better)'
+      weight: 1.0
+    - id: forwardCompat
+      label: 'Forward-compat'
+      hint: 'Degrades gracefully on unknown/evolving server types (higher = better)'
+      weight: 1.0
+  options:
+    - id: hand-rolled
+      name: 'Hand-rolled zero-dep codec'
+      archetype: 'JsonParser + JsonWriter + per-type mappers behind a JsonCodec SPI'
+      summary: >-
+        A small recursive-descent parser, a JSON writer, and explicit per-type
+        mappers over the closed protocol type set — no external library. A
+        ServiceLoader seam (JsonCodec) lets a library-backed codec be swapped in
+        later with no API change.
+      tag: 'chosen'
+      environments: [ongoing]
+      complete: true
+      lines:
+        - id: maint
+          group: effort
+          label: 'Parser + mapping upkeep'
+          flat: false
+          sku: eng_day
+          mode: payg
+          schedule: always
+          qty: { ongoing: 0.5 }
+      scores:
+        zeroDep: { score: 5, note: 'Pure JDK; nothing lands on a consumer classpath.' }
+        lowMaintenance:
+          { score: 4, note: 'A dozen small files, but JSON grammar is frozen; the per-type mapping churn is protocol-driven and would exist with any codec.' }
+        robustness:
+          { score: 3, note: 'Our own parser — tiny closed surface, 113 tests + adversarial probes, but not decade-hardened like Jackson.' }
+        forwardCompat: { score: 5, note: 'UnknownAuditEvent fallback; generalises to a resourceType discriminator (see D2).' }
+    - id: jackson
+      name: 'Jackson (jackson-databind)'
+      archetype: 'ObjectMapper + annotations / custom deserializers'
+      summary: >-
+        The de-facto Java JSON library. Deletes the hand-rolled parser, but adds
+        a runtime dependency and forces its version on every consumer.
+      environments: [ongoing]
+      complete: true
+      lines:
+        - id: maint
+          group: effort
+          label: 'Upgrade + CVE watch'
+          flat: false
+          sku: eng_day
+          mode: payg
+          schedule: always
+          qty: { ongoing: 0.5 }
+      scores:
+        zeroDep: { score: 1, note: 'Adds jackson-databind and forces its version on consumers (diamond-dependency risk) — breaks the §2 constraint.' }
+        lowMaintenance: { score: 4, note: 'Maintained upstream, but CVE-watch and major-version churn (2.x → 3.x package rename).' }
+        robustness: { score: 5, note: 'Industry standard, decade-hardened.' }
+        forwardCompat: { score: 4, note: 'Polymorphic deserialization support, though the unknown-type fallback still needs a custom deserializer.' }
+    - id: gson
+      name: 'Gson'
+      archetype: 'Gson + TypeAdapters'
+      summary: >-
+        Google''s JSON library. Simpler than Jackson, but still an external
+        runtime dependency with the same version-forcing issue.
+      environments: [ongoing]
+      complete: true
+      lines:
+        - id: maint
+          group: effort
+          label: 'Upgrade watch'
+          flat: false
+          sku: eng_day
+          mode: payg
+          schedule: always
+          qty: { ongoing: 0.4 }
+      scores:
+        zeroDep: { score: 1, note: 'Still an external runtime dependency; same version-forcing issue.' }
+        lowMaintenance: { score: 4, note: 'Stable and low-churn, but minimal active development.' }
+        robustness: { score: 4, note: 'Mature and widely used.' }
+        forwardCompat: { score: 3, note: 'Weaker polymorphic support; more custom adapter work.' }
+  outcome:
+    option: hand-rolled
+    rationale: >-
+      Zero external dependencies is a hard product constraint for a consumer-facing
+      SDK — it avoids forcing a JSON-library version onto every app that embeds us
+      (the diamond-dependency problem). The protocol type surface is tiny and
+      closed, so a hand-rolled codec is tractable and is covered by 113 tests plus
+      adversarial probes. The maintenance concern is real but concentrates in the
+      frozen parser/writer half; the per-type mapping churns with the protocol and
+      would exist under any library. The JsonCodec ServiceLoader seam keeps a cheap
+      exit to Jackson if the burden ever outgrows the benefit — so this is a
+      reversible, one-way-door-free choice.
+    decidedBy: 'Fieldstate Dev Lead'
+    decidedAt: '2026-07-18'

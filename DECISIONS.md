@@ -1,34 +1,15 @@
 # Decisions
 
-This file records notable technical decisions as they're made, so the reasoning
-behind them isn't lost once the code that motivated them has moved on. Issue
-#12 will turn this into proper, polished documentation; until then it's kept
-as a running, dated log.
+Architecture decisions for this repo are recorded as **WorkSpec Decision
+artifacts** under [`docs/decisions/`](docs/decisions/) — schema-bound
+`*.decision.yaml` files (options scored on weighted criteria, costed in ongoing
+maintenance effort, with a recorded outcome), validated against
+`https://schema.workspec.io/v1alpha1/decision.schema.json`.
 
-## 2026-07-18: Hand-rolled, zero-dependency JSON codec
+| ID | Decision | Status |
+| -- | -------- | ------ |
+| [D1](docs/decisions/d1-json-serialisation.decision.yaml) | JSON serialisation for `oasp-client` (hand-rolled zero-dep codec) | decided |
 
-**Decision:** `oasp-client` serialises and deserialises the OASP protocol
-types (issue #5) with a small, hand-rolled JSON implementation
-(`dev.oasp.client.json`) rather than a library like Jackson or Gson.
-
-**Why:** `oasp-client` promises zero external runtime dependencies (see §2 of
-the project's guiding principles, enforced by the `verifyZeroRuntimeDependencies`
-Gradle task). Jackson/Gson would violate that promise. The set of types that
-need JSON mapping is small and closed - the protocol types in
-`dev.oasp.client.types` - so an explicit, per-type hand-written mapper is a
-reasonable amount of code to own, and is arguably safer than a generic
-reflective mapper: every mapping is visible in one file
-(`HandRolledJsonCodec`), and the compiler flags a missing case.
-
-**The escape hatch:** a `JsonCodec` service-provider interface, resolved via
-`ServiceLoader` (`JsonCodec.getDefault()`), sits between callers and the
-actual implementation. If the hand-rolled codec ever proves too costly to
-maintain, a Jackson-backed `JsonCodec` provider can be dropped in later as an
-additional jar on the classpath - this is the fallback rule referenced in §6
-- with no change to `oasp-client`'s public API, since every call site already
-goes through `JsonCodec`, never through `HandRolledJsonCodec` directly.
-
-**Trade-off accepted:** we maintain a small amount of parsing and mapping
-code ourselves (a recursive-descent JSON parser, string escaping, and one
-explicit mapping per protocol type) instead of depending on a mature,
-battle-tested library.
+Open them in [WorkSpec Studio](https://studio.workspec.io) for the scored
+comparison view, or read the YAML directly. The shared cost model lives in
+[`docs/decisions/decisions.catalog.yaml`](docs/decisions/decisions.catalog.yaml).
