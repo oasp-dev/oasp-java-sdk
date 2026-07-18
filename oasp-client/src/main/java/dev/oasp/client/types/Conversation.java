@@ -1,51 +1,52 @@
 package dev.oasp.client.types;
 
-import java.time.Instant;
+import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 /**
- * A conversation as reported by an OASP server: its id, lifecycle state, the
- * principal it was opened for, and its timestamps.
+ * The durable, user-facing thread - the "warp" held under tension while
+ * {@link Session}s, the "weft", come and go. A Conversation outlives any
+ * single Session: it tracks the {@code currentSessionId} riding on it
+ * today, the {@code pinnedAgentVersion} that session was minted against,
+ * and every {@code previousSessionIds} this Conversation has ridden on
+ * before - the succession {@code migrate} appends to on each session
+ * upgrade.
  *
- * @param id        the server-assigned conversation id
- * @param state     the current lifecycle state
- * @param principal the principal the conversation was opened on behalf of
- * @param createdAt when the conversation was created
- * @param closedAt  when the conversation was closed, if it has been
+ * @param id                  unique identifier of this Conversation
+ * @param scope               the generalized-ownership attachment point
+ *                            this Conversation belongs to
+ * @param initiatingPrincipal the Principal that started this Conversation
+ * @param currentSessionId    identifier of the Session this Conversation
+ *                            currently rides on
+ * @param pinnedAgentVersion  the immutable AgentDefinition version the
+ *                            current session was minted against
+ * @param previousSessionIds  identifiers of every Session this Conversation
+ *                            has ridden on before the current one, oldest
+ *                            first; never {@code null} and never contains
+ *                            {@code null} elements, but may be empty
  */
 public record Conversation(
         String id,
-        ConversationState state,
-        Principal principal,
-        Instant createdAt,
-
-        // A record accessor's return type must match its component's type exactly,
-        // so a component typed `Instant` could never have an `Optional<Instant>`
-        // accessor - that would be two methods with the same signature but
-        // different return types, which doesn't compile. Typing the component
-        // itself as Optional<Instant> is the only way to get the Optional-typed
-        // accessor the API calls for. The tradeoff, tolerated below, is that the
-        // compact constructor must accept a plain `null` (e.g. from a
-        // deserializer that doesn't know about Optional) and normalize it to
-        // Optional.empty(), since Optional itself offers no null-safe way in.
-        Optional<Instant> closedAt) {
+        Scope scope,
+        PrincipalRef initiatingPrincipal,
+        String currentSessionId,
+        AgentVersionRef pinnedAgentVersion,
+        List<String> previousSessionIds)
+        implements Resource {
 
     public Conversation {
-        // Only a non-null check for id, not blank: the spec for this type calls
-        // for non-null on id/state/principal/createdAt only (unlike, say,
-        // Principal.subject or ScopeClaim.id, which are also required to be
-        // non-blank). This id is server-assigned, so we validate exactly what
-        // was asked and no more.
         Objects.requireNonNull(id, "id");
-        Objects.requireNonNull(state, "state");
-        Objects.requireNonNull(principal, "principal");
-        Objects.requireNonNull(createdAt, "createdAt");
+        Objects.requireNonNull(scope, "scope");
+        Objects.requireNonNull(initiatingPrincipal, "initiatingPrincipal");
+        Objects.requireNonNull(currentSessionId, "currentSessionId");
+        Objects.requireNonNull(pinnedAgentVersion, "pinnedAgentVersion");
+        Objects.requireNonNull(previousSessionIds, "previousSessionIds");
 
-        // Deliberately lenient: we do not require closedAt to be present when
-        // state == CLOSED (or absent when OPEN). The server is the source of
-        // truth for that relationship, and validating it here risks rejecting
-        // an otherwise-valid response if the server's rules ever change.
-        closedAt = (closedAt == null) ? Optional.empty() : closedAt;
+        previousSessionIds = List.copyOf(previousSessionIds);
+    }
+
+    @Override
+    public String resourceType() {
+        return "Conversation";
     }
 }

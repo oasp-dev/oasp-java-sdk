@@ -3,94 +3,80 @@ package dev.oasp.client.types;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
-import java.time.Instant;
 import java.util.List;
-import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
 class ConversationTest {
 
-    private static final Principal PRINCIPAL = new Principal("user-1", List.of());
-    private static final Instant CREATED_AT = Instant.parse("2026-01-01T00:00:00Z");
+    private static final Scope SCOPE = new Scope(ScopeLevel.WORKSPACE, "ws-1");
+    private static final PrincipalRef INITIATING_PRINCIPAL = new PrincipalRef(PrincipalKind.USER, "user-1");
+    private static final AgentVersionRef PINNED_VERSION = new AgentVersionRef("agent-1", 1L);
 
     @Test
     void constructsWithValidArguments() {
         Conversation conversation = new Conversation(
-                "conv-1", ConversationState.OPEN, PRINCIPAL, CREATED_AT, Optional.empty());
+                "conv-1", SCOPE, INITIATING_PRINCIPAL, "session-1", PINNED_VERSION, List.of("session-0"));
 
         assertThat(conversation.id()).isEqualTo("conv-1");
-        assertThat(conversation.state()).isEqualTo(ConversationState.OPEN);
-        assertThat(conversation.principal()).isEqualTo(PRINCIPAL);
-        assertThat(conversation.createdAt()).isEqualTo(CREATED_AT);
+        assertThat(conversation.scope()).isEqualTo(SCOPE);
+        assertThat(conversation.initiatingPrincipal()).isEqualTo(INITIATING_PRINCIPAL);
+        assertThat(conversation.currentSessionId()).isEqualTo("session-1");
+        assertThat(conversation.pinnedAgentVersion()).isEqualTo(PINNED_VERSION);
+        assertThat(conversation.previousSessionIds()).containsExactly("session-0");
     }
 
     @Test
-    void closedAtIsEmptyWhenConstructedWithNull() {
+    void resourceTypeIsConversation() {
         Conversation conversation =
-                new Conversation("conv-1", ConversationState.OPEN, PRINCIPAL, CREATED_AT, null);
+                new Conversation("conv-1", SCOPE, INITIATING_PRINCIPAL, "session-1", PINNED_VERSION, List.of());
 
-        assertThat(conversation.closedAt()).isEmpty();
-    }
-
-    @Test
-    void closedAtIsEmptyWhenConstructedWithOptionalEmpty() {
-        Conversation conversation = new Conversation(
-                "conv-1", ConversationState.OPEN, PRINCIPAL, CREATED_AT, Optional.empty());
-
-        assertThat(conversation.closedAt()).isEmpty();
-    }
-
-    @Test
-    void closedAtIsPresentWhenGivenAnInstant() {
-        Instant closedAt = Instant.parse("2026-01-02T00:00:00Z");
-
-        Conversation conversation = new Conversation(
-                "conv-1", ConversationState.CLOSED, PRINCIPAL, CREATED_AT, Optional.of(closedAt));
-
-        assertThat(conversation.closedAt()).contains(closedAt);
-    }
-
-    @Test
-    void doesNotRequireClosedAtWhenStateIsClosed() {
-        // Deliberately lenient: the server is the source of truth for whether
-        // a CLOSED conversation must carry a closedAt timestamp, so this must
-        // not throw.
-        Conversation conversation =
-                new Conversation("conv-1", ConversationState.CLOSED, PRINCIPAL, CREATED_AT, null);
-
-        assertThat(conversation.state()).isEqualTo(ConversationState.CLOSED);
-        assertThat(conversation.closedAt()).isEmpty();
+        assertThat(conversation.resourceType()).isEqualTo("Conversation");
     }
 
     @Test
     void rejectsNullId() {
         assertThatNullPointerException()
                 .isThrownBy(() ->
-                        new Conversation(null, ConversationState.OPEN, PRINCIPAL, CREATED_AT, Optional.empty()))
+                        new Conversation(null, SCOPE, INITIATING_PRINCIPAL, "session-1", PINNED_VERSION, List.of()))
                 .withMessageContaining("id");
     }
 
     @Test
-    void rejectsNullState() {
+    void rejectsNullScope() {
         assertThatNullPointerException()
-                .isThrownBy(
-                        () -> new Conversation("conv-1", null, PRINCIPAL, CREATED_AT, Optional.empty()))
-                .withMessageContaining("state");
+                .isThrownBy(() ->
+                        new Conversation("conv-1", null, INITIATING_PRINCIPAL, "session-1", PINNED_VERSION, List.of()))
+                .withMessageContaining("scope");
     }
 
     @Test
-    void rejectsNullPrincipal() {
+    void rejectsNullInitiatingPrincipal() {
         assertThatNullPointerException()
-                .isThrownBy(() ->
-                        new Conversation("conv-1", ConversationState.OPEN, null, CREATED_AT, Optional.empty()))
-                .withMessageContaining("principal");
+                .isThrownBy(() -> new Conversation("conv-1", SCOPE, null, "session-1", PINNED_VERSION, List.of()))
+                .withMessageContaining("initiatingPrincipal");
     }
 
     @Test
-    void rejectsNullCreatedAt() {
+    void rejectsNullCurrentSessionId() {
         assertThatNullPointerException()
                 .isThrownBy(() ->
-                        new Conversation("conv-1", ConversationState.OPEN, PRINCIPAL, null, Optional.empty()))
-                .withMessageContaining("createdAt");
+                        new Conversation("conv-1", SCOPE, INITIATING_PRINCIPAL, null, PINNED_VERSION, List.of()))
+                .withMessageContaining("currentSessionId");
+    }
+
+    @Test
+    void rejectsNullPinnedAgentVersion() {
+        assertThatNullPointerException()
+                .isThrownBy(() ->
+                        new Conversation("conv-1", SCOPE, INITIATING_PRINCIPAL, "session-1", null, List.of()))
+                .withMessageContaining("pinnedAgentVersion");
+    }
+
+    @Test
+    void rejectsNullPreviousSessionIds() {
+        assertThatNullPointerException()
+                .isThrownBy(() -> new Conversation(
+                        "conv-1", SCOPE, INITIATING_PRINCIPAL, "session-1", PINNED_VERSION, null))
+                .withMessageContaining("previousSessionIds");
     }
 }
