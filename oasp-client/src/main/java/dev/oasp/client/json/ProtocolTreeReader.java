@@ -11,6 +11,7 @@ import dev.oasp.client.types.Principal;
 import dev.oasp.client.types.ScopeClaim;
 import dev.oasp.client.types.ScopeLevel;
 import dev.oasp.client.types.UnknownAuditEvent;
+import java.util.Map;
 
 /**
  * Maps a parsed JSON tree onto the requested {@code type}. One {@code if}
@@ -55,10 +56,9 @@ final class ProtocolTreeReader {
             return TypeReaders.mapConversationClosed(JsonTrees.asObject(node, "root"));
         }
         if (type == UnknownAuditEvent.class) {
-            String discriminator =
-                    JsonTrees.asString(JsonTrees.field(JsonTrees.asObject(node, "root"), "type"), "type");
+            Map<String, Object> root = JsonTrees.asObject(node, "root");
             return AuditEventMapper.mapUnknownAuditEvent(
-                    JsonTrees.asObject(node, "root"), discriminator, originalJson);
+                    root, JsonFields.string(root, "type"), originalJson);
         }
         throw new JsonException("Cannot read JSON as unsupported type: " + type.getName());
     }
