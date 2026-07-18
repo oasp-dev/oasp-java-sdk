@@ -44,7 +44,7 @@ final class ProtocolTreeWriter {
             case Optional<?> optional -> optional.isPresent() ? toTree(optional.get()) : null;
 
             // Enums write as their name(); reading is the strict direction
-            // (see ValueMappers.mapEnum).
+            // (see JsonFields.enumValue).
             case ScopeLevel level -> level.name();
             case ConversationState state -> state.name();
 

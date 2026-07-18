@@ -32,10 +32,10 @@ final class ProtocolTreeReader {
             return TypeReaders.mapScopeClaim(JsonTrees.asObject(node, "root"));
         }
         if (type == ScopeLevel.class) {
-            return ValueMappers.mapEnum(ScopeLevel.class, JsonTrees.asString(node, "root"));
+            return JsonFields.enumValue(ScopeLevel.class, JsonTrees.asString(node, "root"));
         }
         if (type == ConversationState.class) {
-            return ValueMappers.mapEnum(ConversationState.class, JsonTrees.asString(node, "root"));
+            return JsonFields.enumValue(ConversationState.class, JsonTrees.asString(node, "root"));
         }
         if (type == Conversation.class) {
             return TypeReaders.mapConversation(JsonTrees.asObject(node, "root"));
