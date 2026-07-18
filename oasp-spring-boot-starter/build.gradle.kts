@@ -8,8 +8,11 @@
 // "org.springframework.boot" plugin. That plugin builds executable/bootable
 // jars (with an embedded server, a repackaged fat jar, etc.), which only
 // makes sense for the final application, not for a library like this one.
+import com.vanniktech.maven.publish.SonatypeHost
+
 plugins {
     `java-library`
+    id("com.vanniktech.maven.publish")
 }
 
 dependencies {
@@ -38,4 +41,36 @@ dependencies {
     // Gradle 9 no longer auto-provides the JUnit Platform launcher on the
     // test runtime classpath, so we declare it explicitly (see oasp-client).
     testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.14.3")
+}
+
+// Publish as dev.oasp:oasp-spring-boot-starter. Its POM declares oasp-client
+// + spring-boot-autoconfigure (unlike oasp-client, this module is not zero-dep).
+mavenPublishing {
+    publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
+    signAllPublications()
+    coordinates("dev.oasp", "oasp-spring-boot-starter", project.version.toString())
+    pom {
+        name.set("OASP Spring Boot Starter")
+        description.set("Spring Boot auto-configuration for the OASP Java client.")
+        inceptionYear.set("2026")
+        url.set("https://github.com/oasp-dev/oasp-java-sdk")
+        licenses {
+            license {
+                name.set("Apache-2.0")
+                url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
+            }
+        }
+        developers {
+            developer {
+                id.set("oasp")
+                name.set("OASP")
+                url.set("https://www.oasp.dev")
+            }
+        }
+        scm {
+            url.set("https://github.com/oasp-dev/oasp-java-sdk")
+            connection.set("scm:git:https://github.com/oasp-dev/oasp-java-sdk.git")
+            developerConnection.set("scm:git:ssh://git@github.com/oasp-dev/oasp-java-sdk.git")
+        }
+    }
 }
