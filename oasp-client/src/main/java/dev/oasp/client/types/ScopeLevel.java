@@ -1,9 +1,9 @@
 package dev.oasp.client.types;
 
 /**
- * The kind of entity a {@link ScopeClaim} grants access to. OASP scopes a
- * conversation to one of these levels, from broadest (an entire tenant) to
- * narrowest (a single role).
+ * The five levels an OASP {@link Scope} may attach at, from broadest to
+ * narrowest. Normative resolution order when scopes overlap is
+ * {@code user > role > group > workspace > tenant} (most-specific-scope-wins).
  */
 public enum ScopeLevel {
     TENANT,

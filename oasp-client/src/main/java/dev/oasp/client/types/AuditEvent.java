@@ -1,52 +1,69 @@
 package dev.oasp.client.types;
 
 import java.time.Instant;
+import java.util.Objects;
+import java.util.Optional;
 
 /**
- * An audit event reported by an OASP server for a {@link Conversation}: a
- * record of something that happened, who caused it, and when.
+ * The normative, non-negotiable audit record OASP requires for every
+ * mutating interaction (FHIR {@code AuditEvent} is the prior art and the
+ * posture: an implementation that cannot answer "what did the agent do as
+ * {member} on {date}" is non-conformant).
  *
- * <p>This interface is {@code sealed}: {@code permits} below is a closed,
- * compiler-checked list of every type allowed to implement it. That buys two
- * things a plain (non-sealed) interface can't offer:
+ * <p>Unlike this SDK's original, invented model - a sealed hierarchy of
+ * {@code ConversationCreated}/{@code ConversationClosed} variants - the real
+ * oasp-standard {@code auditEventSchema} is a single flat shape: {@link
+ * #what()} is a plain, closed seven-value enum field on one object, not a
+ * structural discriminated union. There is therefore no per-{@code what}
+ * variance to model with a sealed interface, and no {@code UnknownAuditEvent}
+ * fallback is needed here - {@code what} is a data field, not a shape
+ * discriminator. (This is exactly why {@link Resource} exists one level up:
+ * {@code resourceType: "AuditEvent"} is the real, self-describing
+ * discriminator; {@code what} sub-discriminates beneath it.)
  *
- * <ul>
- *   <li>a {@code switch} over {@code AuditEvent} can cover all permitted
- *       types with no {@code default} branch, and the compiler rejects the
- *       switch if a case is missing - "did I handle every kind of event?"
- *       becomes a compile error instead of a runtime bug;
- *   <li>the set of possible event kinds is conformance-checkable: anyone
- *       reading this file sees the complete taxonomy in one place, rather
- *       than having to search the codebase for implementers.
- * </ul>
+ * <p>Deliberately lenient, matching this package's convention elsewhere: the
+ * spec's cross-field rule - {@code scope} required unless {@code outcome}
+ * is {@code NOT_FOUND} - is not enforced in this compact constructor. The
+ * server is the source of truth for that relationship; rejecting it here
+ * risks turning an otherwise-valid response into a construction failure.
  *
- * <p>The obvious risk with a closed set is forward-compatibility: what
- * happens when a newer OASP server starts emitting an event type this SDK
- * version has never heard of? That's what {@link UnknownAuditEvent} is for -
- * it's a permitted member of this sealed hierarchy that acts as a catch-all,
- * preserving the common envelope fields plus the raw, unrecognised payload
- * instead of the SDK failing to deserialize the event at all. (Actually
- * routing an unrecognised event type to {@code UnknownAuditEvent} is the
- * job of the JSON deserialization layer, not this type.)
- *
- * @see ConversationCreated
- * @see ConversationClosed
- * @see UnknownAuditEvent
+ * @param id       unique identifier of this AuditEvent
+ * @param who      the acting principal, and who it acted on behalf of, if any
+ * @param what     which v0 interaction this event records
+ * @param scope    the attachment point the interaction occurred within
+ * @param when     when the interaction occurred
+ * @param outcome  whether the interaction succeeded, failed, or not-found
+ * @param degraded whether the interaction completed in a degraded mode
+ * @param refs     references to the session/conversation/definition/credentials involved
+ * @param evidence action-specific evidence, when resolvable
  */
-public sealed interface AuditEvent permits ConversationCreated, ConversationClosed, UnknownAuditEvent {
+public record AuditEvent(
+        String id,
+        AuditWho who,
+        AuditInteraction what,
+        Optional<Scope> scope,
+        Instant when,
+        AuditOutcome outcome,
+        Optional<Boolean> degraded,
+        AuditRefs refs,
+        Optional<AuditEvidence> evidence)
+        implements Resource {
 
-    /**
-     * The id of the {@link Conversation} this event occurred on.
-     */
-    String conversationId();
+    public AuditEvent {
+        Objects.requireNonNull(id, "id");
+        Objects.requireNonNull(who, "who");
+        Objects.requireNonNull(what, "what");
+        Objects.requireNonNull(when, "when");
+        Objects.requireNonNull(outcome, "outcome");
+        Objects.requireNonNull(refs, "refs");
 
-    /**
-     * When the event occurred, as reported by the server.
-     */
-    Instant occurredAt();
+        scope = (scope == null) ? Optional.empty() : scope;
+        degraded = (degraded == null) ? Optional.empty() : degraded;
+        evidence = (evidence == null) ? Optional.empty() : evidence;
+    }
 
-    /**
-     * The principal that caused this event.
-     */
-    Principal actor();
+    @Override
+    public String resourceType() {
+        return "AuditEvent";
+    }
 }

@@ -1,79 +1,88 @@
 package dev.oasp.client.types;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
 class PrincipalTest {
 
+    private static final PrincipalIdentity IDENTITY =
+            new PrincipalIdentity("sub-1", Optional.empty(), Optional.empty(), Optional.empty());
+
     @Test
     void constructsWithValidArguments() {
-        List<ScopeClaim> claims = List.of(new ScopeClaim(ScopeLevel.USER, "user-1"));
+        Principal principal = new Principal(
+                "principal-1",
+                PrincipalKind.USER,
+                IDENTITY,
+                List.of(new Scope(ScopeLevel.WORKSPACE, "ws-1")),
+                List.of("admin"));
 
-        Principal principal = new Principal("user-1", claims);
-
-        assertThat(principal.subject()).isEqualTo("user-1");
-        assertThat(principal.claims()).containsExactly(new ScopeClaim(ScopeLevel.USER, "user-1"));
+        assertThat(principal.id()).isEqualTo("principal-1");
+        assertThat(principal.kind()).isEqualTo(PrincipalKind.USER);
+        assertThat(principal.identity()).isEqualTo(IDENTITY);
+        assertThat(principal.scopeMemberships()).containsExactly(new Scope(ScopeLevel.WORKSPACE, "ws-1"));
+        assertThat(principal.roles()).containsExactly("admin");
     }
 
     @Test
-    void constructsWithEmptyClaims() {
-        Principal principal = new Principal("user-1", List.of());
+    void resourceTypeIsPrincipal() {
+        Principal principal = new Principal("principal-1", PrincipalKind.USER, IDENTITY, List.of(), List.of());
 
-        assertThat(principal.claims()).isEmpty();
+        assertThat(principal.resourceType()).isEqualTo("Principal");
     }
 
     @Test
-    void rejectsNullSubject() {
+    void defensivelyCopiesScopeMembershipsAndRoles() {
+        List<Scope> scopes = new ArrayList<>();
+        scopes.add(new Scope(ScopeLevel.WORKSPACE, "ws-1"));
+        List<String> roles = new ArrayList<>();
+        roles.add("admin");
+
+        Principal principal = new Principal("principal-1", PrincipalKind.USER, IDENTITY, scopes, roles);
+        scopes.add(new Scope(ScopeLevel.TENANT, "tenant-1"));
+        roles.add("owner");
+
+        assertThat(principal.scopeMemberships()).hasSize(1);
+        assertThat(principal.roles()).hasSize(1);
+    }
+
+    @Test
+    void rejectsNullId() {
         assertThatNullPointerException()
-                .isThrownBy(() -> new Principal(null, List.of()))
-                .withMessageContaining("subject");
+                .isThrownBy(() -> new Principal(null, PrincipalKind.USER, IDENTITY, List.of(), List.of()))
+                .withMessageContaining("id");
     }
 
     @Test
-    void rejectsBlankSubject() {
-        assertThatIllegalArgumentException()
-                .isThrownBy(() -> new Principal("   ", List.of()))
-                .withMessageContaining("subject");
-    }
-
-    @Test
-    void rejectsNullClaims() {
+    void rejectsNullKind() {
         assertThatNullPointerException()
-                .isThrownBy(() -> new Principal("user-1", null))
-                .withMessageContaining("claims");
+                .isThrownBy(() -> new Principal("principal-1", null, IDENTITY, List.of(), List.of()))
+                .withMessageContaining("kind");
     }
 
     @Test
-    void rejectsNullElementWithinClaims() {
-        List<ScopeClaim> claimsWithNull = new ArrayList<>();
-        claimsWithNull.add(null);
-
-        assertThatNullPointerException().isThrownBy(() -> new Principal("user-1", claimsWithNull));
+    void rejectsNullIdentity() {
+        assertThatNullPointerException()
+                .isThrownBy(() -> new Principal("principal-1", PrincipalKind.USER, null, List.of(), List.of()))
+                .withMessageContaining("identity");
     }
 
     @Test
-    void defensivelyCopiesTheSuppliedList() {
-        List<ScopeClaim> source = new ArrayList<>();
-        source.add(new ScopeClaim(ScopeLevel.USER, "user-1"));
-
-        Principal principal = new Principal("user-1", source);
-
-        // Mutating the caller's original list after construction must not be
-        // visible through the Principal - it should hold its own snapshot.
-        source.add(new ScopeClaim(ScopeLevel.TENANT, "tenant-1"));
-
-        assertThat(principal.claims()).containsExactly(new ScopeClaim(ScopeLevel.USER, "user-1"));
+    void rejectsNullScopeMemberships() {
+        assertThatNullPointerException()
+                .isThrownBy(() -> new Principal("principal-1", PrincipalKind.USER, IDENTITY, null, List.of()))
+                .withMessageContaining("scopeMemberships");
     }
 
     @Test
-    void storedClaimsListIsUnmodifiable() {
-        Principal principal = new Principal("user-1", List.of(new ScopeClaim(ScopeLevel.USER, "user-1")));
-
-        assertThat(principal.claims()).isUnmodifiable();
+    void rejectsNullRoles() {
+        assertThatNullPointerException()
+                .isThrownBy(() -> new Principal("principal-1", PrincipalKind.USER, IDENTITY, List.of(), null))
+                .withMessageContaining("roles");
     }
 }

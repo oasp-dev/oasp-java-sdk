@@ -1,0 +1,224 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.oasp.dev/v1alpha1/AuditEvent.json",
+  "title": "AuditEvent",
+  "type": "object",
+  "properties": {
+    "resourceType": {
+      "type": "string",
+      "const": "AuditEvent",
+      "description": "FHIR-style discriminator naming this resource type; MUST equal the resource type name."
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Unique identifier of this AuditEvent."
+    },
+    "who": {
+      "type": "object",
+      "properties": {
+        "principal": {
+          "description": "The Principal that performed the interaction.",
+          "$ref": "#/$defs/PrincipalRef"
+        },
+        "onBehalfOf": {
+          "description": "If the principal acted on behalf of another party (e.g. an assistant acting as a member), that party.",
+          "$ref": "#/$defs/PrincipalRef"
+        }
+      },
+      "required": [
+        "principal"
+      ],
+      "additionalProperties": false,
+      "description": "The acting principal, and the party it acted on behalf of, if any."
+    },
+    "what": {
+      "type": "string",
+      "enum": [
+        "publish",
+        "createConversation",
+        "migrate",
+        "drain",
+        "stream",
+        "send",
+        "sendToolResult"
+      ],
+      "description": "Which v0 interaction this AuditEvent records."
+    },
+    "scope": {
+      "description": "The generalized-ownership attachment point the interaction occurred within. Required whenever `outcome` is `success` or `failure` (see the cross-field check this schema enforces below); MAY be omitted when `outcome` is `not_found`, since no primary resource was ever identified to source a scope from. The one exception is `createConversation`, whose `scope` comes from the caller-supplied input rather than an existing resource, so it remains populatable even on a `not_found` outcome — see docs/spec/audit.md § Not-found preconditions.",
+      "$ref": "#/$defs/Scope"
+    },
+    "when": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+      "description": "Timestamp the interaction occurred, as an ISO 8601 date-time. A UTC `Z` designator or a numeric zone offset (e.g. `+12:00`) is accepted, so audit records from any timezone verify against the published schema."
+    },
+    "outcome": {
+      "type": "string",
+      "enum": [
+        "success",
+        "failure",
+        "not_found"
+      ],
+      "description": "Whether the interaction succeeded, failed, or targeted a resource that never existed. `not_found` is its own value — distinct from `failure` — precisely so a probe against a nonexistent id is distinguishable in the trail from an ordinary operational failure (issue #11): a server MUST NOT return before emitting an AuditEvent merely because its precondition check found nothing to act on. See docs/spec/audit.md § Not-found preconditions."
+    },
+    "degraded": {
+      "description": "Whether this interaction completed in a degraded mode that lost continuity it would otherwise have carried — e.g. a `migrate` whose Stage 2 transcript fetch failed and which proceeded with an empty seed instead (docs/spec/interactions.md § Degrade-to-fresh-start on transcript-fetch failure). Optional and additive: omitted (never `false`) for interactions with no degraded mode, and for a migrate that completed a full transcript seed. Present and `true` only on a degraded migrate. Without this field, a degraded migrate and a normal one both emit `outcome: 'success'` and are indistinguishable in the audit trail — the defect this field exists to close (issue #12).",
+      "type": "boolean"
+    },
+    "refs": {
+      "type": "object",
+      "properties": {
+        "sessionId": {
+          "description": "Identifier of the Session involved, if any (or asserted by the caller, on a not_found outcome).",
+          "type": "string",
+          "minLength": 1
+        },
+        "conversationId": {
+          "description": "Identifier of the Conversation involved, if any (or asserted by the caller, on a not_found outcome).",
+          "type": "string",
+          "minLength": 1
+        },
+        "definitionId": {
+          "description": "Identifier of the AgentDefinition involved, if any (or asserted by the caller, on a not_found outcome).",
+          "type": "string",
+          "minLength": 1
+        },
+        "credentialIds": {
+          "description": "Identifiers of the Credentials attached/used in this interaction, so the trail names which credential — not just that one was attached.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "additionalProperties": false,
+      "description": "References to the session, conversation, definition, and/or credentials involved."
+    },
+    "evidence": {
+      "description": "Action-specific evidence for this interaction — currently the `send` content digest and the pinned AgentDefinition version, when resolvable (issue #11, Tranche A). Omitted entirely (never `{}`) when neither sub-field applies, per the same absence-is-the-sentinel convention `degraded` uses.",
+      "type": "object",
+      "properties": {
+        "contentDigest": {
+          "description": "A canonical digest of the message content posted by `send`, formatted `sha256:<hex>`. Populated on every `send` AuditEvent regardless of outcome — the caller-supplied content is known whether or not the send itself succeeded — and omitted for every other `what` value. Answers \"exactly what content was sent\" from the trail alone, without re-deriving it from provider-side transcript storage. Distinct from the AgentDefinition version-content hash `docs/spec/audit.md` also discusses: that hash is deferred to issue #18 (no hash algorithm for it is chosen here) — this digests the *message content*, never the *AgentDefinition version*.",
+          "type": "string",
+          "minLength": 1
+        },
+        "agentVersionRef": {
+          "description": "The AgentDefinition version pinned — or, for `migrate`, being attempted — at the time of this interaction: a migrate that resolves a target version records that TARGET even when a later stage fails and the Conversation keeps its old pin (the no-op branches record the unchanged pin); every other interaction records the resolved Session/Conversation's pinned version. Always the plain `{ agentDefinitionId, version }` pointer, never a content hash of that version (the cryptographic version hash issue #11 also asked for is deferred to issue #18; this reuses the same plain-integer `version` pin `AgentVersionRef` already carries elsewhere, per std-10). Populated whenever the interaction resolves a Session or Conversation, so a pin is knowable; omitted on a `not_found` outcome (no resource was ever resolved to source a pin from) and on `publish`, which advances an AgentDefinition's own version pointer directly rather than acting against an already-pinned Session/Conversation.",
+          "$ref": "#/$defs/AgentVersionRef"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "resourceType",
+    "id",
+    "who",
+    "what",
+    "when",
+    "outcome",
+    "refs"
+  ],
+  "additionalProperties": false,
+  "description": "The normative audit record emitted for every mutating interaction.",
+  "if": {
+    "properties": {
+      "outcome": {
+        "const": "not_found"
+      }
+    },
+    "required": [
+      "outcome"
+    ]
+  },
+  "else": {
+    "required": [
+      "scope"
+    ]
+  },
+  "$defs": {
+    "PrincipalKind": {
+      "type": "string",
+      "enum": [
+        "user",
+        "service",
+        "agent"
+      ],
+      "description": "The kind of acting party: a human user, a machine-to-machine service, or an agent acting on its own."
+    },
+    "PrincipalRef": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "description": "The kind of principal being referenced.",
+          "$ref": "#/$defs/PrincipalKind"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Identifier of the referenced Principal resource."
+        }
+      },
+      "required": [
+        "kind",
+        "id"
+      ],
+      "additionalProperties": false,
+      "description": "A pointer to a Principal by kind and id, without embedding its full claims-contract record."
+    },
+    "Scope": {
+      "type": "object",
+      "properties": {
+        "level": {
+          "type": "string",
+          "enum": [
+            "tenant",
+            "workspace",
+            "user",
+            "group",
+            "role"
+          ],
+          "description": "Which level of the tenant/workspace/user/group/role taxonomy this attachment point is at."
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Identifier of the scoped entity (the tenant id, workspace id, user id, group id, or role id)."
+        }
+      },
+      "required": [
+        "level",
+        "id"
+      ],
+      "additionalProperties": false,
+      "description": "A generalized-ownership attachment point: a taxonomy level plus the identifier at that level."
+    },
+    "AgentVersionRef": {
+      "type": "object",
+      "properties": {
+        "agentDefinitionId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Identifier of the pinned AgentDefinition."
+        },
+        "version": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991,
+          "description": "The version number being pinned; keyed together with agentDefinitionId into an immutable AgentDefinitionVersion content snapshot."
+        }
+      },
+      "required": [
+        "agentDefinitionId",
+        "version"
+      ],
+      "additionalProperties": false,
+      "description": "A pin to one version of an AgentDefinition, keyed into an immutable AgentDefinitionVersion content snapshot."
+    }
+  }
+}
