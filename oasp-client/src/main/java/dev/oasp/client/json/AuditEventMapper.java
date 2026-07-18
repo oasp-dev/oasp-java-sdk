@@ -40,8 +40,7 @@ final class AuditEventMapper {
         return new ConversationClosed(conversationId, occurredAt, actor);
     }
 
-    static UnknownAuditEvent mapUnknownAuditEvent(
-            Map<String, Object> obj, String discriminator, String originalJson) {
+    static UnknownAuditEvent mapUnknownAuditEvent(Map<String, Object> obj, String discriminator, String originalJson) {
         var conversationId = JsonFields.string(obj, "conversationId");
         var occurredAt = JsonFields.instant(obj, "occurredAt");
         var actor = TypeReaders.mapPrincipal(JsonFields.object(obj, "actor"));
