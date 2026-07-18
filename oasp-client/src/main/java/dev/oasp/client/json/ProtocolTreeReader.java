@@ -30,47 +30,48 @@ final class ProtocolTreeReader {
     private ProtocolTreeReader() {}
 
     static Object fromTree(Object node, Class<?> type, String originalJson) {
+        // Every supported top-level type is a JSON object, so coerce once here.
+        Map<String, Object> root = JsonTrees.asObject(node, "root");
         if (type == Resource.class) {
-            return ResourceDispatch.mapResource(JsonTrees.asObject(node, "root"), originalJson);
+            return ResourceDispatch.mapResource(root, originalJson);
         }
         if (type == Principal.class) {
-            return TopLevelReaders.mapPrincipal(JsonTrees.asObject(node, "root"));
+            return TopLevelReaders.mapPrincipal(root);
         }
         if (type == Conversation.class) {
-            return TopLevelReaders.mapConversation(JsonTrees.asObject(node, "root"));
+            return TopLevelReaders.mapConversation(root);
         }
         if (type == Session.class) {
-            return TopLevelReaders.mapSession(JsonTrees.asObject(node, "root"));
+            return TopLevelReaders.mapSession(root);
         }
         if (type == AuditEvent.class) {
-            return AuditReaders.mapAuditEvent(JsonTrees.asObject(node, "root"));
+            return AuditReaders.mapAuditEvent(root);
         }
         if (type == Event.class) {
-            return EventReaders.mapEvent(JsonTrees.asObject(node, "root"), originalJson);
+            return EventReaders.mapEvent(root, originalJson);
         }
         if (type == CreateConversation.class) {
-            return TopLevelReaders.mapCreateConversation(JsonTrees.asObject(node, "root"));
+            return TopLevelReaders.mapCreateConversation(root);
         }
         if (type == ErrorEnvelope.class) {
-            return TopLevelReaders.mapErrorEnvelope(JsonTrees.asObject(node, "root"));
+            return TopLevelReaders.mapErrorEnvelope(root);
         }
         if (type == SessionResource.class) {
-            return SessionResourceReaders.mapSessionResource(JsonTrees.asObject(node, "root"));
+            return SessionResourceReaders.mapSessionResource(root);
         }
         if (type == Scope.class) {
-            return DatatypeReaders.mapScope(JsonTrees.asObject(node, "root"));
+            return DatatypeReaders.mapScope(root);
         }
         if (type == PrincipalRef.class) {
-            return DatatypeReaders.mapPrincipalRef(JsonTrees.asObject(node, "root"));
+            return DatatypeReaders.mapPrincipalRef(root);
         }
         if (type == AgentVersionRef.class) {
-            return DatatypeReaders.mapAgentVersionRef(JsonTrees.asObject(node, "root"));
+            return DatatypeReaders.mapAgentVersionRef(root);
         }
         if (type == PrincipalIdentity.class) {
-            return DatatypeReaders.mapPrincipalIdentity(JsonTrees.asObject(node, "root"));
+            return DatatypeReaders.mapPrincipalIdentity(root);
         }
         if (type == UnknownResource.class) {
-            Map<String, Object> root = JsonTrees.asObject(node, "root");
             return new UnknownResource(JsonFields.string(root, "resourceType"), originalJson);
         }
         throw new JsonException("Cannot read JSON as unsupported type: " + type.getName());
