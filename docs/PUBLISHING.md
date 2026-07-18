@@ -14,6 +14,9 @@ The version lives in the root [`build.gradle.kts`](../build.gradle.kts)
 
 ## One-time setup (credentials)
 
+> Full step-by-step walkthrough (token → GPG key → secrets → backup → cleanup):
+> [`RELEASE-SETUP.md`](./RELEASE-SETUP.md). The summary below is the reference.
+
 Generate these and add them as **repository secrets** (Settings → Secrets and
 variables → Actions). The values never appear in the repo or the build files —
 Gradle reads them from the environment.
