@@ -1,0 +1,129 @@
+# yaml-language-server: $schema=https://schema.workspec.io/v1alpha1/decision.schema.json
+apiVersion: workspec.io/v1alpha1
+kind: Decision
+metadata:
+  id: dec-d2-resource-discriminator
+  title: 'D2 — Resource discriminator & self-describing types'
+  status: exploring
+  created: '2026-07-18'
+  deciders:
+    - 'Fieldstate Dev Lead'
+spec:
+  context: >-
+    OASP is designed FHIR-shaped, and we own the standard. FHIR tags every
+    resource with a `resourceType` discriminator (but not embedded datatypes),
+    which makes messages self-describing: a deserializer can dispatch on the tag
+    and validate that a payload is the type the caller expected. Today only the
+    AuditEvent hierarchy carries a discriminator; everything else is dispatched
+    on the caller-supplied Class. The question is whether — and how — to make
+    OASP resources self-describing. This depends on spec decisions in
+    oasp-standard (field name, which types are resources vs datatypes, how the
+    AuditEvent hierarchy composes, the unknown-resource fallback), so it stays
+    `exploring` until those are pinned (issue #2). Costs below are the ongoing
+    monthly maintenance effort of each approach in loaded engineer-days.
+  catalog: ./decisions.catalog.yaml
+  currency: NZD
+  environments:
+    - ongoing
+  criteria:
+    - id: specAlignment
+      label: 'FHIR/spec alignment'
+      hint: 'Matches the FHIR-shaped oasp-standard (higher = better)'
+      weight: 2.0
+    - id: selfDescribing
+      label: 'Self-describing'
+      hint: 'Resources declare their own type; enables generic dispatch + payload validation (higher = better)'
+      weight: 1.5
+    - id: forwardCompat
+      label: 'Forward-compat'
+      hint: 'Unknown/newer resource types degrade gracefully rather than failing (higher = better)'
+      weight: 1.0
+    - id: domainPurity
+      label: 'Domain purity'
+      hint: 'Domain types stay free of serialization coupling (higher = purer)'
+      weight: 1.0
+    - id: simplicity
+      label: 'Simplicity'
+      hint: 'Less machinery / conceptual overhead (higher = simpler)'
+      weight: 0.8
+  options:
+    - id: resource-base
+      name: 'Resource base type with resourceType()'
+      archetype: 'sealed Resource interface; resources expose resourceType() as a domain property'
+      summary: >-
+        Introduce a Resource base (sealed interface) that resources implement,
+        exposing resourceType() as a domain property — the FHIR model. Datatypes
+        (Principal, ScopeClaim, ScopeLevel) stay plain. The codec writes/reads the
+        discriminator and generalises the UnknownAuditEvent fallback to any
+        unknown resource. Exposing the type is domain metadata, not serialization
+        logic, so it doesn't couple the types to a codec.
+      tag: 'leaning'
+      environments: [ongoing]
+      complete: true
+      lines:
+        - id: maint
+          group: effort
+          label: 'Resource hierarchy + discriminator upkeep'
+          flat: false
+          sku: eng_day
+          mode: payg
+          schedule: always
+          qty: { ongoing: 0.4 }
+      scores:
+        specAlignment: { score: 5, note: 'Mirrors FHIR resourceType directly; resources self-identify at the domain level.' }
+        selfDescribing: { score: 5, note: 'Any Resource reference can be asked what it is; enables read-time type validation.' }
+        forwardCompat: { score: 5, note: 'One generalized unknown-resource fallback across the whole model.' }
+        domainPurity: { score: 4, note: 'Exposes type as metadata (not codec logic), but does bring the wire notion of "type" into the domain — intentional in a FHIR model.' }
+        simplicity: { score: 3, note: 'Adds a Resource base and reparents AuditEvent under it.' }
+    - id: codec-registry
+      name: 'Discriminator in the codec only'
+      archetype: 'type<->name registry inside dev.oasp.client.json; domain types unchanged'
+      summary: >-
+        Keep the discriminator entirely in the json layer — a registry mapping
+        each type to its wire name (extending today's AuditEventTypes). Domain
+        records stay completely JSON-agnostic; the codec writes/validates the
+        discriminator.
+      environments: [ongoing]
+      complete: true
+      lines:
+        - id: maint
+          group: effort
+          label: 'Registry upkeep'
+          flat: false
+          sku: eng_day
+          mode: payg
+          schedule: always
+          qty: { ongoing: 0.3 }
+      scores:
+        specAlignment: { score: 3, note: 'Implements the wire discriminator but the domain model does not reflect it.' }
+        selfDescribing: { score: 3, note: 'The wire is self-describing; the in-memory types are not.' }
+        forwardCompat: { score: 4, note: 'Fallback is possible but tends to be per-hierarchy rather than uniform.' }
+        domainPurity: { score: 5, note: 'Domain types stay entirely free of any wire/type concern.' }
+        simplicity: { score: 4, note: 'Fully contained to the json layer; no type-model changes.' }
+    - id: status-quo
+      name: 'No resource discriminator (as-is)'
+      archetype: 'Class-based dispatch; only AuditEvent carries a type'
+      summary: >-
+        Leave it as it is: read(json, Class) dispatches on the caller-supplied
+        type, and only AuditEvent has a discriminator + fallback.
+      environments: [ongoing]
+      complete: true
+      lines:
+        - id: maint
+          group: effort
+          label: 'No new machinery'
+          flat: false
+          sku: eng_day
+          mode: payg
+          schedule: always
+          qty: { ongoing: 0.1 }
+      scores:
+        specAlignment: { score: 2, note: 'Does not reflect a FHIR-shaped spec beyond audit events.' }
+        selfDescribing: { score: 1, note: 'No discriminator; dispatch depends entirely on the caller knowing the type.' }
+        forwardCompat: { score: 3, note: 'Only AuditEvent degrades gracefully; other resources do not.' }
+        domainPurity: { score: 5, note: 'Types are pure protocol records.' }
+        simplicity: { score: 5, note: 'Nothing new to build or maintain.' }
+  links:
+    - kind: issue
+      label: 'Spec verification / feedback (oasp-java-sdk #2)'
+      target: 'https://github.com/oasp-dev/oasp-java-sdk/issues/2'
