@@ -16,22 +16,20 @@ final class JsonTrees {
         return obj.get(name);
     }
 
-    @SuppressWarnings("unchecked")
     static Map<String, Object> asObject(Object node, String field) {
         if (!(node instanceof Map<?, ?> map)) {
             throw new JsonException(
                     "Expected \"" + field + "\" to be a JSON object but was " + describe(node));
         }
-        return (Map<String, Object>) map;
+        return castObjectMap(map);
     }
 
-    @SuppressWarnings("unchecked")
     static List<Object> asArray(Object node, String field) {
         if (!(node instanceof List<?> list)) {
             throw new JsonException(
                     "Expected \"" + field + "\" to be a JSON array but was " + describe(node));
         }
-        return (List<Object>) list;
+        return castObjectList(list);
     }
 
     static String asString(Object node, String field) {
@@ -40,6 +38,21 @@ final class JsonTrees {
                     "Expected \"" + field + "\" to be a JSON string but was " + describe(node));
         }
         return s;
+    }
+
+    // The two casts below are unverifiable under type erasure (the compiler
+    // confirms Map/List but not the type arguments), so each is quarantined in
+    // its own method where @SuppressWarnings covers nothing but the cast. Safe
+    // because the tree comes only from JsonParser, which builds Map<String,Object>
+    // for every object and List<Object> for every array.
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> castObjectMap(Map<?, ?> map) {
+        return (Map<String, Object>) map;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<Object> castObjectList(List<?> list) {
+        return (List<Object>) list;
     }
 
     static String describe(Object node) {
