@@ -5,6 +5,7 @@ import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 /**
@@ -54,18 +55,22 @@ final class JsonFields {
     }
 
     static Optional<String> optionalString(Map<String, Object> obj, String name) {
-        Object node = JsonTrees.field(obj, name);
-        return node == null ? Optional.empty() : Optional.of(JsonTrees.asString(node, name));
+        return optional(obj, name, JsonTrees::asString);
     }
 
     static Optional<Boolean> optionalBoolean(Map<String, Object> obj, String name) {
-        Object node = JsonTrees.field(obj, name);
-        return node == null ? Optional.empty() : Optional.of(JsonTrees.asBoolean(node, name));
+        return optional(obj, name, JsonTrees::asBoolean);
     }
 
     static Optional<Map<String, Object>> optionalObject(Map<String, Object> obj, String name) {
+        return optional(obj, name, JsonTrees::asObject);
+    }
+
+    /** A named field coerced with {@code coerce}, or empty when the field is missing or JSON null. */
+    private static <T> Optional<T> optional(
+            Map<String, Object> obj, String name, BiFunction<Object, String, T> coerce) {
         Object node = JsonTrees.field(obj, name);
-        return node == null ? Optional.empty() : Optional.of(JsonTrees.asObject(node, name));
+        return node == null ? Optional.empty() : Optional.of(coerce.apply(node, name));
     }
 
     /**
