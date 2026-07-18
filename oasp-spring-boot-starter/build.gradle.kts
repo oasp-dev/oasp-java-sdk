@@ -27,4 +27,15 @@ dependencies {
     // time and never ships in the jar, so it's an annotationProcessor, not
     // a regular dependency.
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor:3.5.16")
+
+    // Test the auto-configuration in isolation with ApplicationContextRunner
+    // (spring-boot-test) against real Spring contexts (spring-boot-autoconfigure
+    // is already on the compile classpath via `api` above).
+    testImplementation("org.springframework.boot:spring-boot-test:3.5.16")
+    testImplementation("org.junit.jupiter:junit-jupiter:5.14.3")
+    testImplementation("org.assertj:assertj-core:3.27.7")
+
+    // Gradle 9 no longer auto-provides the JUnit Platform launcher on the
+    // test runtime classpath, so we declare it explicitly (see oasp-client).
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.14.3")
 }
