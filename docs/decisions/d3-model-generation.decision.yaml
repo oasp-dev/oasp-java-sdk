@@ -1,0 +1,123 @@
+# yaml-language-server: $schema=https://schema.workspec.io/v1alpha1/decision.schema.json
+apiVersion: workspec.io/v1alpha1
+kind: Decision
+metadata:
+  id: dec-d3-model-generation
+  title: 'D3 — How the SDK models are produced & kept in sync with the spec'
+  status: decided
+  created: '2026-07-18'
+  deciders:
+    - 'Fieldstate Dev Lead'
+spec:
+  context: >-
+    oasp-standard publishes machine-readable artifacts (OpenAPI + JSON Schema),
+    so the SDK's Java models could be generated from the spec. This matters
+    because the SDK had already drifted from the spec once (the assumed
+    Conversation lifecycle). The question is whether to generate the models or
+    hand-write them — traded off against the zero-dependency constraint (D1) and
+    the SDK's hand-crafted idioms (records, sealed hierarchies, Optional
+    accessors, Unknown* fallbacks). Costs are ongoing monthly maintenance effort
+    in loaded engineer-days.
+  catalog: ./decisions.catalog.yaml
+  currency: NZD
+  environments:
+    - ongoing
+  criteria:
+    - id: driftSafety
+      label: 'Drift safety'
+      hint: 'Cannot silently diverge from the spec (higher = safer)'
+      weight: 1.5
+    - id: zeroDep
+      label: 'Zero deps'
+      hint: 'Keeps oasp-client free of external runtime deps / annotations (higher = better)'
+      weight: 2.0
+    - id: idiomFit
+      label: 'Idiom fit'
+      hint: 'Matches our records / sealed hierarchies / Optional / Unknown* idioms (higher = better)'
+      weight: 1.5
+    - id: lowEffort
+      label: 'Low effort'
+      hint: 'Little tooling / template maintenance to carry (higher = less effort)'
+      weight: 1.0
+  options:
+    - id: handwrite-drift-test
+      name: 'Hand-write + CI drift-test'
+      archetype: 'idiomatic hand-written records + a test validating them against the spec JSON Schema'
+      summary: >-
+        Hand-write zero-dep idiomatic records and add a CI drift test that
+        validates them against oasp-standard's published JSON Schema (vendored),
+        flagging any missing/extra field, wrong resourceType, or enum value.
+        Generate-to-verify, not generate-to-author.
+      tag: 'chosen'
+      environments: [ongoing]
+      complete: true
+      lines:
+        - id: maint
+          group: effort
+          label: 'Types + drift-test upkeep'
+          flat: false
+          sku: eng_day
+          mode: payg
+          schedule: always
+          qty: { ongoing: 0.4 }
+      scores:
+        driftSafety: { score: 4, note: 'Drift is caught in CI (SpecDriftTest), though not auto-fixed.' }
+        zeroDep: { score: 5, note: 'Pure JDK records; no generator, no annotations.' }
+        idiomFit: { score: 5, note: 'Full control: compact-constructor validation, sealed Resource/Event, Optional, Unknown* fallbacks.' }
+        lowEffort: { score: 4, note: 'Small closed surface; the drift test is the only extra machinery.' }
+    - id: full-codegen
+      name: 'Full codegen from the spec'
+      archetype: 'OpenAPI Generator / jsonschema2pojo with custom templates'
+      summary: >-
+        Generate the records from the OpenAPI/JSON Schema. Auto-syncs with the
+        spec, but stock output is Jackson-annotated (breaks zero-dep) so it needs
+        custom templates, and generated code does not match our idioms.
+      environments: [ongoing]
+      complete: true
+      lines:
+        - id: maint
+          group: effort
+          label: 'Generator + template maintenance'
+          flat: false
+          sku: eng_day
+          mode: payg
+          schedule: always
+          qty: { ongoing: 0.6 }
+      scores:
+        driftSafety: { score: 5, note: 'Regenerated straight from the spec — cannot drift.' }
+        zeroDep: { score: 2, note: 'Stock output pulls in Jackson; zero-dep needs heavy custom templates.' }
+        idiomFit: { score: 2, note: 'Generic POJOs; sealed hierarchies / Optional / Unknown* fallbacks need template work.' }
+        lowEffort: { score: 2, note: 'Custom templates + generator config to build and maintain.' }
+    - id: hybrid
+      name: 'Generate the wire contract only'
+      archetype: 'generate field-name / enum / resourceType constants; hand-write the records'
+      summary: >-
+        Generate just the volatile wire constants (field names, enum wire values,
+        resourceType strings) from the schema; hand-write the record idioms
+        referencing them.
+      environments: [ongoing]
+      complete: true
+      lines:
+        - id: maint
+          group: effort
+          label: 'Two mechanisms to maintain'
+          flat: false
+          sku: eng_day
+          mode: payg
+          schedule: always
+          qty: { ongoing: 0.5 }
+      scores:
+        driftSafety: { score: 4, note: 'Wire constants track the spec; record shapes still hand-maintained.' }
+        zeroDep: { score: 4, note: 'Generated constants are plain; no runtime dep.' }
+        idiomFit: { score: 4, note: 'Records stay idiomatic; constants are injected.' }
+        lowEffort: { score: 3, note: 'A codegen step plus hand-written records — two things to keep in step.' }
+  outcome:
+    option: handwrite-drift-test
+    rationale: >-
+      For a small, stable, zero-dependency surface, hand-written idiomatic records
+      plus a CI drift test against the spec's JSON Schema keep D1 (zero-dep) and
+      our idioms intact while making silent drift impossible — which is the actual
+      failure we hit. Full codegen would reintroduce a dependency and fight our
+      idioms; it earns its keep only on a large, churny surface, which this is not.
+    decidedBy: 'Fieldstate Dev Lead'
+    decidedAt: '2026-07-18'
