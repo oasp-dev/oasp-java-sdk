@@ -1,10 +1,39 @@
 # oasp-java-sdk
 
-A Java client SDK for the OASP protocol. `oasp-client` carries **zero external
-dependencies beyond the JDK**.
+A Java client SDK for the [OASP](https://www.oasp.dev) protocol. `oasp-client`
+carries **zero external dependencies beyond the JDK**.
 
-> This is a stub. The usage quickstart (builder + a lifecycle call) lands with
-> issue #12; for now this covers only how to build the project.
+## Quickstart
+
+```java
+OaspClient client = OaspClient.builder()
+    .baseUrl(URI.create("https://loom.local:8443"))
+    .tokenProvider(() -> tokenFromSomewhere())     // sent as Authorization: Bearer per request
+    .build();
+
+// Start a conversation, then talk to the agent over the session it rides on.
+Conversation conv = client.conversations().create(new CreateConversation(
+    new Scope(ScopeLevel.WORKSPACE, "ws-42"),
+    new PrincipalRef(PrincipalKind.USER, "user-1"),
+    "my-agent-definition",
+    List.of()));
+
+client.sessions().send(conv.currentSessionId(), "hello");
+try (Stream<Event> events = client.sessions().stream(conv.currentSessionId())) {
+    events.forEach(System.out::println);           // assistant_message_*, tool-use, status, …
+}
+```
+
+A **Conversation** is a durable thread that rides disposable **Sessions**; you
+address the conversation, and OASP routes to the active session. See
+[`docs/spec`](https://github.com/oasp-dev/oasp-standard/tree/main/docs/spec) for
+the model, and [`docs/JAVA-NOTES.md`](docs/JAVA-NOTES.md) for the design
+decisions Java forced, and [`DECISIONS.md`](DECISIONS.md) for the recorded
+architecture decisions.
+
+> Some request bodies (`createConversation`, `send`) are provisional — the
+> upstream OpenAPI marks them placeholders; they'll firm up as `oasp-standard`
+> pins the wire shapes.
 
 ## Building
 
