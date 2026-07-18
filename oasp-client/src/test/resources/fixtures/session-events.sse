@@ -1,0 +1,10 @@
+: an OASP session event stream (text/event-stream)
+
+data: {"resourceType":"Event","type":"assistant_message_start","id":"evt-0001","at":"2026-07-18T10:00:00Z","messageId":"msg-1"}
+
+data: {"resourceType":"Event","type":"assistant_message_text","id":"evt-0002","at":"2026-07-18T10:00:01Z","messageId":"msg-1","delta":"Hello, weaver."}
+
+data: {"resourceType":"Event","type":"quantum_flux","id":"evt-0003","at":"2026-07-18T10:00:02Z","payload":{"note":"a type this SDK version predates"}}
+
+data: {"resourceType":"Event","type":"status","id":"evt-0004","at":"2026-07-18T10:00:03Z","status":"idle"}
+

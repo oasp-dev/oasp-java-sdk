@@ -1,0 +1,10 @@
+{
+  "resourceType": "Session",
+  "id": "session-1",
+  "pinnedAgentVersion": {
+    "agentDefinitionId": "agent-1",
+    "version": 1
+  },
+  "resources": [],
+  "vaultIds": []
+}
