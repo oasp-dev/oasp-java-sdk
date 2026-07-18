@@ -9,7 +9,7 @@ maintenance effort, with a recorded outcome), validated against
 | ID | Decision | Status |
 | -- | -------- | ------ |
 | [D1](docs/decisions/d1-json-serialisation.decision.yaml) | JSON serialisation for `oasp-client` (hand-rolled zero-dep codec) | decided |
-| [D2](docs/decisions/d2-resource-discriminator.decision.yaml) | Resource discriminator & self-describing types (FHIR-style `resourceType`) | exploring |
+| [D2](docs/decisions/d2-resource-discriminator.decision.yaml) | Resource discriminator & self-describing types (FHIR-style `resourceType`) | decided |
 
 Open them in [WorkSpec Studio](https://studio.workspec.io) for the scored
 comparison view, or read the YAML directly. The shared cost model lives in
