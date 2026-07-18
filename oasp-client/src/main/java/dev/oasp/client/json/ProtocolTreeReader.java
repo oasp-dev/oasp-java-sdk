@@ -50,10 +50,10 @@ final class ProtocolTreeReader {
             return AuditEventMapper.mapAuditEvent(JsonTrees.asObject(node, "root"), originalJson);
         }
         if (type == ConversationCreated.class) {
-            return TypeReaders.mapConversationCreated(JsonTrees.asObject(node, "root"));
+            return AuditEventMapper.mapConversationCreated(JsonTrees.asObject(node, "root"));
         }
         if (type == ConversationClosed.class) {
-            return TypeReaders.mapConversationClosed(JsonTrees.asObject(node, "root"));
+            return AuditEventMapper.mapConversationClosed(JsonTrees.asObject(node, "root"));
         }
         if (type == UnknownAuditEvent.class) {
             Map<String, Object> root = JsonTrees.asObject(node, "root");
