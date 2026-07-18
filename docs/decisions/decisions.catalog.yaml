@@ -1,0 +1,37 @@
+# yaml-language-server: $schema=https://schema.workspec.io/v1alpha1/catalog.schema.json
+apiVersion: workspec.io/v1alpha1
+kind: Catalog
+metadata:
+  id: oasp-sdk-effort
+  name: 'oasp-java-sdk effort catalog'
+  currency: NZD
+  asOf: '2026-07-18'
+spec:
+  # These are the SDK's own architecture decisions, dogfooded through the
+  # WorkSpec Decision format. For a library there is no infra spend, so the
+  # "cost" of a choice is ongoing effort — a loaded engineer-day — plus any
+  # SaaS/tooling seats a choice drags in. Costs are the *ongoing monthly*
+  # carrying cost (config drift, upgrades, CVE-watch); one-off setup effort is
+  # noted in each decision's context.
+  pricingModes:
+    - id: payg
+      label: 'As incurred'
+      short: 'PAYG'
+      mult: 1.0
+      committed: false
+      note: 'Effort/cost as it lands, no commitment discount'
+  schedules:
+    - id: always
+      label: 'Ongoing'
+      pct: 1.0
+  skus:
+    - id: eng_day
+      label: 'Engineer-day (loaded)'
+      family: 'Effort'
+      price: 1200
+      unit: 'eng-day / month'
+    - id: saas_seat
+      label: 'SaaS / tooling seat'
+      family: 'Tooling'
+      price: 40
+      unit: 'seat / month'
