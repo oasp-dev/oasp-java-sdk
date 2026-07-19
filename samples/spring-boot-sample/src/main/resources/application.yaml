@@ -1,0 +1,12 @@
+# These oasp.* properties drive the starter's auto-configuration: at startup
+# OaspAutoConfiguration reads them and builds the OaspClient bean this app
+# injects. Nothing here connects to a server — the client is only used when
+# the /demo/converse endpoint is called.
+oasp:
+  # The OASP (Loom) server root. Override with your own before hitting the endpoint.
+  base-url: https://loom.local:8443
+  # Bearer token, supplied via the OASP_TOKEN env var (empty if unset).
+  token: ${OASP_TOKEN:}
+  # How long to wait establishing a connection / for a response.
+  connect-timeout: 5s
+  request-timeout: 30s
