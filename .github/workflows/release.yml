@@ -1,0 +1,38 @@
+# Publishes both modules to Maven Central (Central Portal) when a version tag
+# is pushed. Reads the signing key + Central token from repository secrets
+# (see docs/PUBLISHING.md); the build config lives in the modules' build.gradle.kts.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch: # manual runs from the Actions tab, for a first/dry publish
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Gradle 9.6.1
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "9.6.1"
+
+      # Uploads signed artifacts + POMs to the Central Portal. With
+      # publishToMavenCentral they land as a validated deployment you release
+      # from the portal UI; swap to publishAndReleaseToMavenCentral to auto-release.
+      - name: Publish to Maven Central
+        run: gradle publishToMavenCentral --no-configuration-cache
+        env:
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}

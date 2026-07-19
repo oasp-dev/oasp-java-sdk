@@ -1,10 +1,47 @@
 // oasp-client is the core SDK. It is a plain Java library (no application
 // main class, no framework), so it uses the "java-library" plugin, which
 // is the conventional plugin for a jar that other projects depend on.
+import com.vanniktech.maven.publish.SonatypeHost
 import org.gradle.api.artifacts.component.ProjectComponentIdentifier
 
 plugins {
     `java-library`
+    // Version pinned in the root build; publishes to Maven Central (Central
+    // Portal), attaching sources + javadoc jars and a GPG signature.
+    id("com.vanniktech.maven.publish")
+}
+
+// Publish as dev.oasp:oasp-client. The generated POM should carry NO
+// <dependencies> — the zero-dependency promise made visible to consumers
+// (see verifyZeroRuntimeDependencies below).
+mavenPublishing {
+    publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
+    signAllPublications()
+    coordinates("dev.oasp", "oasp-client", project.version.toString())
+    pom {
+        name.set("OASP Java Client")
+        description.set("Zero-dependency Java client SDK for the OASP protocol.")
+        inceptionYear.set("2026")
+        url.set("https://github.com/oasp-dev/oasp-java-sdk")
+        licenses {
+            license {
+                name.set("Apache-2.0")
+                url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
+            }
+        }
+        developers {
+            developer {
+                id.set("oasp")
+                name.set("OASP")
+                url.set("https://www.oasp.dev")
+            }
+        }
+        scm {
+            url.set("https://github.com/oasp-dev/oasp-java-sdk")
+            connection.set("scm:git:https://github.com/oasp-dev/oasp-java-sdk.git")
+            developerConnection.set("scm:git:ssh://git@github.com/oasp-dev/oasp-java-sdk.git")
+        }
+    }
 }
 
 dependencies {

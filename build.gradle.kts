@@ -1,10 +1,24 @@
 // Root build file. Nothing here builds a jar of its own — this project is
 // just a container for the "oasp-client" and "oasp-spring-boot-starter"
 // modules declared in settings.gradle.kts.
-//
+
+plugins {
+    // The publishing plugin is declared here (apply false) so its version is
+    // pinned in ONE place; each publishable module applies it without a
+    // version. Build-time only — it never touches oasp-client's runtime deps.
+    id("com.vanniktech.maven.publish") version "0.30.0" apply false
+}
+
+// The Maven coordinates every published artifact shares. `dev.oasp` is the
+// verified Central namespace (we own oasp.dev). Version is pre-1.0 while the
+// wire shapes are still provisional; keep it in step with oasp-standard.
+allprojects {
+    group = "dev.oasp"
+    version = "0.1.0-alpha.0"
+}
+
 // The `subprojects { ... }` block below applies identical configuration to
 // every module, so we don't have to repeat it in each module's build file.
-
 subprojects {
     // Each module applies the "java-library" plugin itself (see
     // oasp-client/build.gradle.kts and oasp-spring-boot-starter/build.gradle.kts).
