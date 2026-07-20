@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<!--
+  The result page. The controller put a ConverseResult on the model as
+  "result"; here we read its fields with ${result.xxx} and loop over the
+  collected events with th:each. This is the whole point of server-rendered
+  UI: the server did the work and produced finished HTML.
+-->
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="utf-8" />
+    <title>OASP Thymeleaf sample — result</title>
+    <style>
+      body { font-family: system-ui, sans-serif; max-width: 40rem; margin: 3rem auto; padding: 0 1rem; color: #1a1a2e; }
+      h1 { font-size: 1.5rem; }
+      .meta { color: #555; font-size: 0.9rem; margin-bottom: 1.5rem; }
+      .meta code { background: #f0f0f5; padding: 0.1rem 0.35rem; border-radius: 4px; }
+      ul { list-style: none; padding: 0; }
+      li { border: 1px solid #d0d0e0; border-radius: 8px; padding: 0.8rem 1rem; margin-bottom: 0.6rem; }
+      .kind { font-weight: 600; color: #4b3f9e; }
+      .id { color: #888; font-size: 0.8rem; float: right; }
+      .detail { margin-top: 0.3rem; }
+      a { color: #4b3f9e; }
+    </style>
+  </head>
+  <body>
+    <h1>Conversation result</h1>
+
+    <p class="meta">
+      You sent: <strong th:text="${result.userMessage}">…</strong><br />
+      Conversation <code th:text="${result.conversationId}">…</code>
+      on session <code th:text="${result.sessionId}">…</code>
+      (<span th:text="${result.demo} ? 'demo mode — scripted events' : 'live server'">…</span>)
+    </p>
+
+    <!-- One <li> per collected event; th:each repeats it for the whole list. -->
+    <ul>
+      <li th:each="event : ${result.events}">
+        <span class="kind" th:text="${event.kind}">Event</span>
+        <span class="id" th:text="${event.id}">id</span>
+        <div class="detail" th:if="${!event.detail.isEmpty()}" th:text="${event.detail}">…</div>
+      </li>
+    </ul>
+
+    <p><a href="/">← Send another message</a></p>
+  </body>
+</html>

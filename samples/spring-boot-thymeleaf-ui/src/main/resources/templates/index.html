@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<!--
+  The home page. A plain HTML form that POSTs the typed message to /converse.
+  th:* attributes are Thymeleaf directives, processed server-side before the
+  page is sent to the browser; everything else is ordinary HTML/CSS.
+-->
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="utf-8" />
+    <title>OASP Thymeleaf sample</title>
+    <!-- A little inline CSS so the page looks tidy without any build step. -->
+    <style>
+      body { font-family: system-ui, sans-serif; max-width: 40rem; margin: 3rem auto; padding: 0 1rem; color: #1a1a2e; }
+      h1 { font-size: 1.5rem; }
+      .card { border: 1px solid #d0d0e0; border-radius: 8px; padding: 1.5rem; }
+      label { display: block; font-weight: 600; margin-bottom: 0.5rem; }
+      input[type=text] { width: 100%; padding: 0.6rem; border: 1px solid #b0b0c0; border-radius: 6px; font-size: 1rem; box-sizing: border-box; }
+      button { margin-top: 1rem; padding: 0.6rem 1.2rem; border: 0; border-radius: 6px; background: #4b3f9e; color: #fff; font-size: 1rem; cursor: pointer; }
+      .badge { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.8rem; background: #e8e4ff; color: #4b3f9e; }
+    </style>
+  </head>
+  <body>
+    <h1>OASP conversation demo</h1>
+    <!-- th:if renders this only when demo mode is on. -->
+    <p th:if="${demo}"><span class="badge">DEMO MODE</span> Replies are scripted; no server is contacted.</p>
+    <p th:unless="${demo}"><span class="badge">LIVE MODE</span> Replies come from the configured OASP server.</p>
+
+    <div class="card">
+      <form action="/converse" method="post">
+        <label for="message">Your message</label>
+        <input type="text" id="message" name="message" value="Hello from Thymeleaf!" required />
+        <button type="submit">Send</button>
+      </form>
+    </div>
+  </body>
+</html>

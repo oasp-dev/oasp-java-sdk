@@ -1,0 +1,35 @@
+# These oasp.* properties drive the starter's auto-configuration: at startup
+# OaspAutoConfiguration reads them and builds the OaspClient bean this app
+# injects. Building the client validates config but opens no connection, so
+# the app boots fine with no server running.
+oasp:
+  # The OASP (Loom) server root. Only contacted when oasp.demo is false.
+  base-url: https://loom.local:8443
+
+  # Bearer token, supplied via the OASP_TOKEN env var. The fallback keeps a
+  # non-blank value so the client bean builds and the app starts out of the
+  # box in demo mode (where the token is never actually used). Set a real
+  # OASP_TOKEN when running with oasp.demo=false.
+  token: ${OASP_TOKEN:demo-token}
+
+  # How long to wait establishing a connection / for a response.
+  connect-timeout: 5s
+  request-timeout: 30s
+
+  # OFFLINE DEMO MODE toggle. true (the default here) makes the SSE endpoint
+  # stream a scripted sequence of events so the live UI is fully demonstrable
+  # with no Loom. Set to false to drive a real, reachable OASP server instead.
+  demo: true
+
+spring:
+  jackson:
+    # Omit null fields from the JSON we stream to the browser, so each event
+    # payload is minimal (e.g. {"kind":"text","text":"..."}).
+    default-property-inclusion: non_null
+
+# Left at the Spring Boot default (8080); shown here for clarity. Open
+# http://localhost:8080 after starting the app. If you run the Thymeleaf
+# sample at the same time, give one of them a different port to avoid a clash,
+# e.g. --server.port=8081.
+server:
+  port: 8080
