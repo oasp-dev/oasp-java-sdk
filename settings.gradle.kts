@@ -17,3 +17,5 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
+include("samples:spring-boot-thymeleaf-ui")
+include("samples:spring-boot-streaming-ui")

@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OASP live streaming demo</title>
+    <!-- Plain static files, no framework, no CDN, no build step. -->
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="app__header">
+        <h1>OASP live streaming</h1>
+        <p class="app__subtitle">
+          Assistant replies stream in token-by-token over Server-Sent Events.
+        </p>
+      </header>
+
+      <!-- The chat transcript. Bubbles are appended here by app.js. -->
+      <section id="transcript" class="transcript" aria-live="polite"></section>
+
+      <!-- A one-line status readout (session status, errors, connecting…). -->
+      <p id="status" class="status" role="status"></p>
+
+      <!-- The input bar. Submitting sends the message and opens an EventSource. -->
+      <form id="composer" class="composer" autocomplete="off">
+        <input
+          id="message"
+          class="composer__input"
+          name="message"
+          placeholder="Type a message and press Enter…"
+          required
+        />
+        <button id="send" class="composer__send" type="submit">Send</button>
+      </form>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
